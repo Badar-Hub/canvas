@@ -1,103 +1,83 @@
 <template>
-  <canvas @mousedown="drawPoints" @mousemove="trackLine" @mouseup="leaveMouse">
-  </canvas>
+  <div class="row">
+    <div class="col-8">
+      <canvas
+        @mousedown="canvasHelper.handleMouseDown"
+        @mousemove="canvasHelper.handleMouseMove"
+      >
+        <!-- @mouseup="canvasHelper.handleMouseUp" -->
+      </canvas>
+    </div>
+    <div class="col-4">
+      <div class="column items-end">
+        <img
+          class="image"
+          v-for="(img, i) in images"
+          :key="i"
+          :src="require(`@/assets/images/${img}`)"
+          @click="selectImage(img)"
+        />
+      </div>
+    </div>
+  </div>
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref, watch } from "vue";
+import { ref, toRefs, onMounted, watch } from "vue";
+import { CanvasHelper } from "./helper/CanvasHelper";
 
 const canvas = ref();
+const canvasHelper = new CanvasHelper();
+const images = ref([
+  "cert1.png",
+  "cert2.png",
+  "cert3.png",
+  "cert4.png",
+  "cert5.png",
+  "cert6.png",
+]);
+
 const ctx = ref();
-const mouse = ref({
-  isPressed: false,
-  down: {
-    x: 0,
-    y: 0,
-  },
-});
 
-const getCanvas = () => {
-  canvas.value = document.querySelector("canvas");
-  canvas.value.width = window.innerWidth;
-  canvas.value.height = window.innerHeight;
-  ctx.value = canvas.value.getContext("2d");
-  console.log(canvas.value);
-};
-
-const getMousePosition = (event: any, element: any) => {
-  const position = {
-    x: event.clientX - element.offsetLeft,
-    y: event.clientY - element.offsetTop,
+const selectImage = (img: string) => {
+  canvasHelper.loadCanvasImage(`@/assets/images/${img}`);
+  const img1 = new Image();
+  img1.onload = function () {
+    ctx.value.drawImage(img1, 0, 0);
   };
-  return position;
+  img1.src =
+    "https://pbs.twimg.com/profile_images/1455185376876826625/s1AjSxph_400x400.jpg";
 };
 
-function drawLine(line: any) {
-  const {
-    start,
-    end,
-    lineWidth = 20,
-    lineCap = "round",
-    strokeStyle = "white",
-  } = line;
-
-  if (!start || !end) {
-    throw new Error("Start or end of line not defined.");
-  }
-
-  ctx.value.beginPath();
-  ctx.value.moveTo(start.x, start.y);
-  ctx.value.lineTo(end.x, end.y);
-  ctx.value.lineWidth = lineWidth;
-  ctx.value.lineCap = lineCap;
-  ctx.value.strokeStyle = strokeStyle;
-  ctx.value.stroke();
-}
-
-const drawPoints = (e: any) => {
-  mouse.value.isPressed = true;
-  mouse.value.down = getMousePosition(e, canvas.value);
-
-  const line = {
-    start: mouse.value.down,
-    end: mouse.value.down,
-  };
-
-  drawLine(line);
-};
-
-const trackLine = (e: any) => {
-  if (mouse.value.isPressed) {
-    let currentPosition = getMousePosition(e, canvas.value);
-    let line = {
-      start: mouse.value.down,
-      end: currentPosition,
-    };
-    ctx.value.clearRect(0, 0, canvas.value.width, canvas.value.height);
-    drawLine(line);
-  }
-};
-
-const leaveMouse = () => {
-  mouse.value.isPressed = false;
-};
-
-onMounted(() => {
-  setTimeout(() => {
-    getCanvas();
-  }, 300);
+onMounted(async () => {
+  canvas.value = await (await canvasHelper.getCanvas()).canvas;
+  ctx.value = await (await canvasHelper.getCanvas()).ctx;
+  window.addEventListener("keyup", function (ev) {
+    canvasHelper.handleMouseUp(ev);
+  });
 });
 
 watch(
-  () => canvas.value,
+  () => toRefs(canvasHelper).canvas.value,
   () => {
-    console.log(canvas.value, "from watch");
+    console.log(canvasHelper.canvas, "canvasHelper.canvas");
   }
 );
 </script>
 
 <style lang="scss">
+.image {
+  max-width: 150px;
+  width: 100%;
+  margin: 10px 0;
+  background-color: #fafafa;
+  border-radius: 8px;
+  cursor: pointer;
+  &:hover {
+    background-color: #a1a1a1;
+  }
+}
 canvas {
-  background: black !important;
+  background: rgba(0, 0, 0, 0.233) !important;
 }
 </style>
